@@ -1,0 +1,491 @@
+
+.data
+input: .asciz  "               "
+mensajeerror: .asciz "lo siento, mis respuestas son limitados"
+num1: .word 0
+num2: .word 0
+operador: .asciz " "
+resultado: .word 0
+resto: .int 0
+maximopeso: .word 1000000
+mensajedespedida: .asciz "adios!"
+mensajeoperacion: .asciz "ingrese una operacion"
+.text
+funcionConsigna:
+	.fnstart
+mov r9,#0
+			@imprime la consigna
+	mov r0,#1
+	ldr r1,=mensajeoperacion
+	mov r2,#21
+	mov r7,#4
+	swi 0
+	
+bx lr
+	.fnend
+funcionInput:		@lee el input
+	.fnstart
+	mov r0,#0
+	ldr r1,=input
+	mov r2,#15
+	mov r7,#3
+	swi 0
+
+
+bx lr
+	.fnend
+	
+
+	
+controlAdios:
+	 .fnstart
+
+	ldr r1, =input		@r1 apunta al input
+	mov r3,#0		@limpia los registros
+	mov r8,#0
+	ldrb r2,[r1,r3]
+	cmp r2,#0x61		@controla si los asci ingresados son una despedida
+	bne noDespedida
+	add r3,#1
+	ldrb r2,[r1,r3]
+	cmp r2,#0x64
+	bne noDespedida
+	add r3,#1
+	ldrb r2,[r1,r3]
+	cmp r2,#0x69
+	bne noDespedida
+	add r3,#1
+	ldrb r2,[r1,r3]
+	cmp r2,#0x6F
+	bne noDespedida
+	add r3,#1
+	ldrb r2,[r1,r3]
+	cmp r2,#0x73
+	bne noDespedida
+	add r3,#1
+	ldrb r2,[r1,r3]
+	cmp r2,#0x0A
+beq esDespedida
+	bal noDespedida
+esDespedida:
+	mov r8,#1		@modifica la bandera si es o no despedida
+bx lr
+noDespedida:
+	mov r8,#0
+bx lr
+	.fnend
+
+imprimirDespedida:
+	.fnstart
+	
+	mov r0,#1		@imprime la despedida
+	ldr r1, =mensajedespedida
+	mov r2,#6
+	mov r7,#4
+	swi 0
+	
+mov r7,#1
+swi 0
+bx lr
+	.fnend
+
+esCuenta:.fnstart 	
+
+		@tengo en r1 el puntero a el input ingresado
+	ldr r1, =input
+	mov r3,#0	@limpia los registros
+	mov r5,#0
+	mov r9,#0
+
+esNeg:
+	
+	ldrb r2, [r1,r3]
+	cmp r2, #0x2D	@se fija si es -
+	bne esNum
+	add r3,#1  		@Se fija si es negativo
+
+
+esNum:	
+	
+	ldrb r2, [r1,r3]	@apunta a el input
+	cmp r2,#0x30	@controla que sea un numero
+	blt error
+	cmp r2, #0x39
+	bgt error
+	cmp r5,#1
+	beq final
+	add r3, #1	@incrementa el puntero
+	ldrb r2, [r1,r3]
+	cmp r2, #0x20	@compara con espacio
+	beq seguir  
+	bal esNum
+
+
+seguir:
+	add r3, #1
+	ldrb r2, [r1,r3]
+	ldr r6, =operador	@guarda el operador
+	strb r2, [r6]
+	cmp r2, #0x2B		@se fija si es un operador
+	beq continuacion
+	cmp r2, #0x2D
+	beq continuacion
+	cmp r2, #0x2A
+	beq continuacion
+	cmp r2, #0x2F
+	beq continuacion
+	bal error
+
+continuacion:
+	add r3, #1	@incrementa el puntero
+	ldrb r2, [r1, r3]
+	cmp r2, #0x20	@se fija si es espacio
+	add r5, #1	@bandera de final
+	add r3, #1
+	add r9,r3
+	beq esNeg
+	bal error
+
+final:
+	add r3, #1	@incrementa el puntero
+	ldrb r2, [r1,r3]	
+	cmp r2, #0x0A	@se fija si es el final
+	mov r8,#1
+bx lr
+
+error:
+	mov r8,#0
+bx lr
+.fnend
+
+imprimirError:
+	.fnstart
+			@imprime el mensaje de error
+	mov r0,#1	
+	ldr r1,=mensajeerror
+	mov r2,#39
+	mov r7,#4
+	swi 0
+
+bx lr	
+
+
+	.fnend
+
+obtener_valor:
+	.fnstart
+
+
+
+	ldr r1, =input	  /*cargo la direccion de input_usuario*/
+	bl longitudCad		/*en r2 tenemos la longitud de input_usuario*/
+
+longitudCad:
+	mov r9,r9
+	mov r3,#1
+				/*inicializa contador*/
+cicloLongCad:
+	
+	mov r5,#10	/*base*/
+	mov r8,#0	/*numero final*/
+	mov r0,#1	/*unidad,etc..*/
+	mov r2,#0
+	mov r11,#0
+	cmp r3,#1
+	beq primero
+	bal segundo
+primero:
+	ldrb r4,[r1]		/*obtengo primer caracter de la cadena*/
+	cmp r4, #0x20		/*comparo el caracter espacio*/
+	beq salirLongCad
+	add r1,#1		/*mueve el puntero de la cadena*/
+	add r2,#1		/*r2 longitud*/
+	bal primero
+segundo:
+	ldrb r4,[r1,r9]
+	cmp r4,#0x0A	@se fija si es el final
+	beq salirLongCad
+	add r1,#1
+	add r2,#1
+	bal segundo
+salirLongCad:
+	
+	bal ciclo 			/*volver al codigo*/
+
+
+	
+ciclo2:
+	cmp r11,r2
+	beq seguirCod2
+	add r11,#1			/*aumento el contador*/
+	ldr r1, =input		  /*carga la direccion de input_usuario*/
+	add r1,r9
+	add r1,r2		/*desplazamiento a null*/
+	sub r1,r11		/*retrocedo al caracter necesario*/
+	ldrb r10,[r1]	/*carga en r10 el caracter que recorro*/
+	cmp r10,#0x2D
+	beq seguirCod2			
+	sub r10,#0x30		/*resto 30 para convertir el numero*/
+	mul r10,r0
+	add r8,r10		/*lo sumo al numero que ya tenia*/
+	mul r0,r5		/*desplazo las unidades*/
+	bal ciclo2
+
+
+ciclo:	cmp r3,#2	@bandera para ver si es el segundo num
+	beq ciclo2
+	cmp r11,r2	/*compara el contador con la longitud de la cadena*/
+	beq seguirCod1
+	add r11,#1			/*aumento el contador*/
+	ldr r1, =input  /*carga la direccion de input_usuario*/
+	add r1,r2		/*desplazamiento a null*/
+	sub r1,r11		/*retrocedo al caracter necesario*/
+	ldrb r10,[r1]		/*carga en r10 el caracter que recorro*/
+	cmp r10,#0x2D
+	beq seguirCod1
+	sub r10,#0x30		/*resto 30 para convertir el numero*/
+	mul r10,r0
+	add r8,r10		/*lo sumo al numero que ya tenia*/
+
+	mul r0,r5		/*desplazo las unidades*/
+	bal ciclo
+
+
+seguirCod1:
+mov r7,r8	@mueve el registro para no perder el valor
+mov r11,#0	@limpia el reg
+mov r3,#2
+cmp r10,#0x2D	@se fija si es neg
+beq valornegativo1
+bal cicloLongCad
+seguirCod2:
+/*queda en r8 el valor*/
+cmp r10,#0x2D	@se fija si es neg
+beq valornegativo2
+bal fin
+valornegativo1:
+neg r7,r7	@convierte a neg
+bal cicloLongCad
+valornegativo2:
+neg r8,r8	@convierte a neg
+
+fin:
+
+	 ldr r4, =num1 	@guarda los valores en las etiquetas
+         ldr r5, =num2
+	 str r7, [r4]	
+	 str r8, [r5]	
+	bal continuar2
+	.fnend
+
+operaciones:
+
+.fnstart
+mov r0, #0
+ldr r4, =operador
+ldr r4, [r4]	@obtiene el operador en r4
+
+ldr r1, =num1	@obtiene el num1 en r1
+ldr r1, [r1]
+
+ldr r2, =num2	@obtiene el num2 en r2
+ldr r2, [r2]
+
+bl calcular
+bal continuar3
+.fnend
+
+f_dividir:	@dividimos con restas sucesivas
+
+.fnstart
+div_ok:
+
+cmp r1, r2   	@compara para saber como dividir
+bgt div
+
+cmp r1, r2
+ble div_men
+
+cmp r1, r2
+beq div_ig
+
+
+
+div_ig:
+beq return_uno
+
+div_men:
+blt return_cero
+
+div:
+sub r1, r1, r2	@guardamos en r1 el resto de r1 - r2
+add r0,r0,#1	@incrementamos en r0 1
+b div_ok
+
+return_uno:
+add r0,#1
+sub r3, r1, r2
+
+return_cero:
+add r0,#0
+
+bx lr
+.fnend
+
+
+calcular:       @ en r4 guardo el simbolo de la operacion
+
+.fnstart
+
+cmp r4 , #0x2B  @ si es +
+beq sumar
+
+cmp r4, #0x2D    @si es -
+beq restar
+ 
+cmp r4, #0x2A     @ si es *
+beq  multiplicar
+
+cmp r4, #0x2F     @si es /
+beq dividir
+
+
+sumar:
+add r0, r1, r2
+bx lr
+
+restar:
+cmp r1, r2
+bge resta1
+b resta1
+
+resta1:
+sub r0, r1, r2	@guarda en r0 la resta de r1, r2
+bx lr
+
+resta2:
+sub r0, r2, r1	
+neg r0, r3
+bx lr
+
+multiplicar:
+mul r0, r1, r2
+bx lr
+
+dividir:
+bl f_dividir
+
+bal continuar3	
+	.fnend
+
+
+
+finaltexto:
+	.fnstart
+
+bal funcion_convtext
+	
+
+f_dividir1:
+	div_ok1:
+	cmp r0, r2 	@dividendo r0
+	bgt div1	@divisor r2
+	cmp r0,r2
+	blt div_men1
+
+	div_ig1:
+	cmp r0, r2
+	beq return_uno1
+
+	div_men1:
+	bal return_cero1
+
+	div1:
+	sub r0, r0, r2	@guardamos en r0 la resta de r0 - r2
+	add r3,r3,#1	@agregamos 1 a r3
+	b div_ok1
+
+	return_uno1:
+	add r3,#1
+	sub r0, r0, r2	@guarda en r0 la resta de r0 - r2
+
+	return_cero1:	
+	add r3,#0
+	bx lr
+
+funcion_convtext:
+	mov r3,#0	@limpia er registro
+	mov r4,#0x2D	@signo neg
+	mov r0,r0	@registro que tiene el resultado
+	ldr r1,=resultado
+	cmp r0,#0	@se fija si es neg
+	blt ponermenos
+	empezarconv:
+	ldr r2,=maximopeso
+	ldr r2,[r2]	@se guarda en r2 el peso max
+	comparacion:
+	cmp r0,r2
+	blt achicar
+
+	cicloconv:
+	bl f_dividir1
+	bal convertir
+	achicar:
+	push {r0}	@guardamos enla pila el valor de r0
+	mov r0,r2
+	mov r2,#10
+	bl f_dividir1	@dividimos
+	mov r2,r3
+	pop {r0}	@recuperamos de la pila
+	mov r3 ,#0
+	bal comparacion
+	
+	ponermenos:	@pasamos a neg
+	strb r4,[r1]
+	add r1,#1
+	neg r0,r0
+	bal empezarconv
+
+	convertir:
+	add r3,#48	@se agrega 48 para convertir
+	strb r3,[r1]
+	mov r3,#0	@limpiamos el reg
+	cmp r2,#1	@si r2 es 1 se imprime
+	beq imprimirresultado
+	add r1,#1
+	push {r0}	@guardamos el valor de r0
+	mov r0,r2
+	mov r2,#10
+	bl f_dividir1
+	mov r2,r3
+	pop {r0}	@recuperamos el valor de la pila
+	mov r3,#0
+	bal cicloconv
+
+	imprimirresultado:	@imprimimos el resultado
+	mov r7,#4
+	mov r0,#1
+	mov r2,#8
+	ldr r1,=resultado
+	swi 0
+
+bx lr	
+	.fnend   
+
+.global main
+main:
+comienzo:
+bl funcionConsigna
+bl funcionInput
+bl controlAdios
+cmp r8, #1
+bleq imprimirDespedida
+bl esCuenta
+cmp r8, #0
+bleq imprimirError
+bl obtener_valor
+continuar2:
+bl operaciones
+continuar3:
+bl finaltexto
+bal comienzo
